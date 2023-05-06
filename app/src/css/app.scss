@@ -1,0 +1,47 @@
+// app global css in SCSS form
+
+.full-screen{
+    min-height: calc(100vh - 50px);
+    min-width: 100vw;
+}
+
+@font-face {
+    font-family: 'Inter Regular';
+    font-style: normal;
+    font-weight: normal;
+    // src: local('Inter Regular'), url('Inter-Regular.woff') format('woff');
+    src: url(./fonts/Inter-Regular.woff) format('woff')
+}
+
+@font-face {
+    font-family: 'Inter Medium';
+    font-style: normal;
+    font-weight: normal;
+    // src: local('Inter Regular'), url('Inter-Regular.woff') format('woff');
+    src: url(./fonts/Inter-Medium.woff) format('woff')
+}
+
+@font-face {
+    font-family: 'Inter Bold';
+    font-style: normal;
+    font-weight: normal;
+    // src: local('Inter Regular'), url('Inter-Regular.woff') format('woff');
+    src: url(./fonts/Inter-Bold.woff) format('woff')
+}
+
+@font-face {
+    font-family: 'Inter Extra Bold Italic';
+    font-style: normal;
+    font-weight: normal;
+    // src: local('Inter Extra Bold Italic'), url('Inter-ExtraBoldItalic.woff') format('woff');
+    src: url(./fonts/Inter-ExtraBoldItalic.woff) format('woff')
+}
+    
+
+@font-face {
+    font-family: 'Inter Black';
+    font-style: normal;
+    font-weight: normal;
+    // src: local('Inter Black'), url('Inter-Black.woff') format('woff');
+    src: url(./fonts/Inter-Black.woff) format('woff');
+}
