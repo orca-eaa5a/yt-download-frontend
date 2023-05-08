@@ -52,7 +52,7 @@
                 flat
                 bordered
                 class="time-setup-card"
-                style="height: 100%"
+                style="height: 100%; margin:0px;"
               >
                 <q-card-section
                   class="time-setup-card-header flex justify-between items-center"
@@ -96,7 +96,7 @@
                     text-color="primary"
                     round
                     icon="repeat"
-                    @click="setVideoTime('sp')"
+                    @click="setVideoTime(this.time_info['sp'])"
                   >
                     <q-tooltip
                       anchor="top middle"
@@ -112,7 +112,7 @@
                     text-color="primary"
                     round
                     icon="fast_forward"
-                    @click="setVideoTime('ep')"
+                    @click="setVideoTime(this.time_info['ep'])"
                   >
                     <q-tooltip
                       anchor="top middle"
@@ -198,6 +198,7 @@
                 outline
                 color="primary"
                 label="다운로드 요청"
+                @click="download_request"
               />
               <q-btn
                 class="request-btn request-btn-mt"
@@ -225,19 +226,16 @@
                 유튜브 댓글 긁어오기
               </q-tooltip>
             </q-btn>
-          </q-card-section>
+          </q-card-section><q-separator />
 
-          <q-separator />
           <q-card-section class="item-list-box">
             <q-list dense class="item-list">
-              <q-item v-ripple class="item-list-item">
+              <q-item v-ripple class="item-list-item" v-for="(comment, idx) in this.video_info.comments" :key="idx">
                 <q-item-section avatar>
-                  <span>Item</span>
+                  {{comment.timestamp}}
                 </q-item-section>
-                <q-item-section class="content">
-                  <a href="#"
-                    >asdfasdfasdfewfasdfasdfewafadsfsadfewfsadfaasfaewsfasdf</a
-                  >
+                <q-item-section class="content" @click="setVideoTime(comment.timestamp)">
+                  {{comment.tag}}
                 </q-item-section>
               </q-item>
             </q-list>
@@ -349,6 +347,32 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+    <q-dialog v-model="alert_visible">
+      <q-card>
+        <q-card-section>
+          <div class="text-h6">
+            <q-icon class="q-mr-sm" name="feedback" color="grey-6"/>알림!</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none text-h8">
+          {{this.alert_msg}}
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="OK" color="primary" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+    <q-dialog v-model="waiting_modal" persistent>
+      <q-card>
+        <q-card-section class="flex justify-center items-center">
+          <q-spinner-hourglass color="grey-6" size="4em"/>
+        </q-card-section>
+        <q-card-section class="flex justify-center items-center">
+          {{waiting_msg}}
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -357,11 +381,15 @@ export default {
   name: "MainPage",
   data() {
     return {
-      videoUrl: "",
+      videoUrl: "https://www.youtube.com/watch?v=xbc6eDHmXkE",
       video: {
         src: "http://ftp.nluug.nl/pub/graphics/blender/demo/movies/ToS/tears_of_steel_720p.mov",
         type: "video/mp4",
       },
+      waiting_modal: false,
+      alert_visible: false,
+      waiting_msg: "",
+      alert_msg: "",
       s_visible: false,
       e_visible: false,
       text: "",
@@ -376,25 +404,79 @@ export default {
         title: "",
         vid: "",
         streams: [],
+        comments: [],
       },
     };
   },
-  created() {},
+  created() {
+    // this.videoUrl = this.$route.query.q;
+    // console.log(this.$route.query.q);
+  },
   mounted() {
-    console.log(this.$route.query.q);
-    this.videoUrl = this.$route.query.q;
     this.$refs.videoPlayer.addEventListener("timeupdate", (event) => {
       this.time_info.cp = this.timestampToStrftime(event.target.currentTime);
     });
+    this.video_info.comments = [
+        {
+            "timestamp": "55:34",
+            "tag": "[]"
+        },
+        {
+            "timestamp": "00:00",
+            "tag": "[] +) 菅田将暉(Suda Masaki) - 灰色と青(잿빛과 푸름, Haiirotoao)"
+        },
+        {
+            "timestamp": "05:32",
+            "tag": "[] 春雷 (Shunrai, 춘뢰)"
+        },
+        {
+            "timestamp": "10:21",
+            "tag": "[] orion (오리온, 3월의 라이온 OST)"
+        },
+        {
+            "timestamp": "15:11",
+            "tag": "[] Loser (루저)"
+        },
+        {
+            "timestamp": "19:14",
+            "tag": "[] アイネクライネ (아이네 클라이네)"
+        },
+        {
+            "timestamp": "24:02",
+            "tag": "[] まちがいさがし (Machigai Sagashi, 틀린그림찾기)"
+        },
+        {
+            "timestamp": "28:30",
+            "tag": "[] +) 野田洋次郎 (Yojiro Noda) - PLACEBO (플라시보)"
+        },
+        {
+            "timestamp": "32:31",
+            "tag": "[] でしょましょ (Deshomasho, 데쇼마쇼)"
+        },
+        {
+            "timestamp": "35:23",
+            "tag": "[] Vivi (비비)"
+        },
+        {
+            "timestamp": "39:54",
+            "tag": "[] カムパネルラ (Campanella, 캄파넬라)"
+        },
+        {
+            "timestamp": "43:50",
+            "tag": "[] 馬と鹿 (Uma to Shika, 말과 사슴)"
+        },
+        {
+            "timestamp": "48:19",
+            "tag": "[] Peace Sign (피스사인, 나의 히어로 아카데미아 OP 2)"
+        },
+        {
+            "timestamp": "52:18",
+            "tag": "[] Flamingo (플라밍고) 🦩"
+        }
+    ]
   },
   methods: {
-    setVideoTime(tg) {
-      this.$refs.videoPlayer.currentTime = this.strftimeToTimestamp(
-        this.time_info[tg]
-      );
-    },
     doSearch() {
-      alert(this.videoUrl);
       this.setupVideoPlayer();
       // this.$router.push('/search?q='+this.videoUrl);
     },
@@ -402,6 +484,10 @@ export default {
       if (evt.key === "Enter") {
         this.doSearch();
       }
+    },
+    alertPopup(msg){
+      this.alert_msg = msg;
+      this.alert_visible = true;
     },
     timeInputValidation(val) {
       const regex = /^(([0-9]+:)?[0-5]?[0-9]:[0-5][0-9](\.[0-9]{1,3})?$)/;
@@ -444,12 +530,20 @@ export default {
       this.time_info.sp = "00:00:00.000";
       this.time_info.ep = "00:00:00.000";
     },
+    getOriginVideoUrl(){
+      return this.$refs.videoPlayer.firstChild.src;
+    },
     setupVideoInfo(data) {
       this.video_info.time_info = data.time_info;
-      this.video_info.length = data["length"];
+      this.video_info.duration = data["length"];
       this.video_info.title = data.title;
       this.video_info.vid = data.vid;
       this.video_info.streams = data.streams;
+    },
+    loadVideo(url, mime_type){
+      this.video.src = url;
+      this.video.type = mime_type;
+      this.$refs.videoPlayer.load();
     },
     setupVideoPlayer() {
       let api_url =
@@ -460,16 +554,106 @@ export default {
           if (resp.body.success === true) {
             let data = resp.body.data;
             console.log(data);
-            this.video.src = data.streams[data.streams.length - 1].url;
-            this.video.type = data.streams[data.streams.length - 1].mime_type;
-            this.$refs.videoPlayer.load();
+            this.loadVideo(data.streams[data.streams.length - 1].url, data.streams[data.streams.length - 1].mime_type);
             this.setupVideoInfo(data);
           } else {
-            alert("요청하신 비디오 정보를 가져오는데 실패했습니다.");
+            this.alertPopup("요청하신 비디오 정보를 가져오는데 실패했습니다.");
             console.log(resp);
           }
         });
     },
+    setVideoTime(strftime) {
+      this.$refs.videoPlayer.currentTime = this.strftimeToTimestamp(
+        strftime
+      );
+    },
+    async trim_process_healthcheck(ticket){
+      let api_url =
+        "https://4x0z0hafla.execute-api.ap-northeast-2.amazonaws.com/yt-download";
+      let aws_api = api_url + "/healthcheck";
+      let resp = await fetch(aws_api, {
+          method: "POST",
+          headers:{
+              "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+              data:{
+                  ticket:ticket
+              }
+          })
+      });
+      let data = await resp.json();
+      if(data.statusCode === 200 && data.body.success){
+          data = data.body.data
+          if('status' in data){
+              if(data.status === 'RUNNING'){
+                  return undefined;
+              }
+              else if(data.status === 'SUCCEEDED'){
+                  return data;
+              }
+              else{
+                  this.alertPopup("trimming process is failed with error " + data.err);
+                  throw new Error("trimming process is failed with error " + data.err);
+              }
+          }
+          else{
+              this.alertPopup("응답값이 유효하지 않습니다. 관리자에게 문의하세요");
+              console.log(data);
+              throw new Error("invalid response");
+          }
+      }
+    },
+
+    download_request(){
+      let api_url =
+        "https://4x0z0hafla.execute-api.ap-northeast-2.amazonaws.com/yt-download";
+      if(!(this.timeInputValidation(this.time_info.sp) && this.timeInputValidation(this.time_info.ep))){
+        this.alertPopup("시작 / 종료 입력값을 확인하세요\n 입력값은 00:00:00.000 형식이어야 합니다.");
+        return;
+      }
+      if(!this.getOriginVideoUrl()){
+        this.alertPopup("원본 비디오 정보를 가져오는데 실패했습니다. 새로고침 후 다시 시도해 보세요!");
+        return;
+      }
+      if(!this.videoUrl){
+        this.alertPopup("요청하신 비디오 정보가 없습니다. 다시 검색해 주세요.");
+        return;
+      }
+      if(this.strftimeToTimestamp(this.time_info.sp) === this.strftimeToTimestamp(this.time_info.ep)){
+
+      }
+      else{
+        this.waiting_modal = true;
+        this.waiting_msg = "자르기 요청 시작";
+        fetch(api_url + "/trim-request", {
+          method: 'POST',
+          headers: {
+            'Content-Type': "application/json"
+          },
+          body: JSON.stringify({
+            o_url: this.videoUrl,
+            url:this.getOriginVideoUrl(),
+            sp:this.time_info.sp,
+            ep:this.time_info.ep,
+            m_duration: parseInt(this.video_info.duration)
+          })
+        })
+        .then((resp) => resp.json())
+        .then((resp) => {
+          if(resp.statusCode === 200 && resp.body.success){
+            this.waiting_msg = "자르기 요청 성공";
+            let data = resp.body.data;
+            if('tiekct' in data){
+              let healthcheck_cnt = 0;
+              while(healthcheck_cnt <= 5){
+
+              }
+            }
+          }
+        })
+      }
+    }
   },
 };
 </script>
@@ -485,9 +669,10 @@ export default {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  cursor: pointer;
 }
 
-.item-list-item {
+.item-list-box {
   max-height: 200px;
   overflow-y: auto;
 }
