@@ -46,6 +46,7 @@
               <q-card-section></q-card-section>
             </q-card>
           </div>
+
           <div class="col-4">
             <div class="video-controller" style="height: 100%">
               <q-card
@@ -215,7 +216,7 @@
         <q-card flat bordered class="box-card q-mb-md">
           <q-card-section class="flex justify-between">
             <div class="text-h6">타임스탬프 정보</div>
-            <q-btn bordered round icon="youtube_searched_for">
+            <q-btn bordered round icon="youtube_searched_for" @click="load_timestamp_advanced">
               <q-tooltip
                 anchor="top middle"
                 self="bottom middle"
@@ -351,7 +352,7 @@
       <q-card>
         <q-card-section>
           <div class="text-h6">
-            <q-icon class="q-mr-sm" name="feedback" color="grey-6"/>알림!</div>
+            <q-icon class="q-mr-sm" name="notification_important" color="grey-6"/>알림</div>
         </q-card-section>
 
         <q-card-section class="q-pt-none text-h8">
@@ -363,13 +364,53 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
-    <q-dialog v-model="waiting_modal" persistent>
+
+    <q-dialog v-model="waiting_visible">
       <q-card>
         <q-card-section class="flex justify-center items-center">
           <q-spinner-hourglass color="grey-6" size="4em"/>
         </q-card-section>
         <q-card-section class="flex justify-center items-center">
           {{waiting_msg}}
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="download_visible" :position="position">
+      <q-card style="width: 350px">
+        <q-card-section>
+          <span>
+            <q-icon color="primary" name="view_headline"></q-icon>
+            다운로드 목록
+          </span>
+        </q-card-section>
+        <q-card-section class="no-wrap">
+          <q-list>
+            <div v-for="(item, index) in this.downloaded_list" :key="index">
+              <q-item clickable v-ripple @click="alertPopup(item.url)">
+                <q-item-section avatar>
+                  <q-icon color="primary" name="file_download" />
+                </q-item-section>
+                <q-item-section>{{item.title}}</q-item-section>
+              </q-item>
+            </div>
+          </q-list>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+    <q-btn style="position: absolute; right:3%; bottom: 3%;"
+    label="다운로드 목록" icon="vertical_align_bottom" color="primary" @click="openDownloadList('right')" />
+
+    <q-dialog v-model="download_processing" position="bottom" seamless>
+      <q-card style="width: 350px">
+        <q-card-section class="row">
+          <div>
+            <div class="text-weight-bold">
+              <span>다운로드 중</span>
+              <q-spinner color="primary" size="1em"/>
+            </div>
+            <div class="text-grey">{{this.videoUrl}}</div>
+          </div>
         </q-card-section>
       </q-card>
     </q-dialog>
@@ -381,12 +422,15 @@ export default {
   name: "MainPage",
   data() {
     return {
-      videoUrl: "https://www.youtube.com/watch?v=xbc6eDHmXkE",
+      videoUrl: "",
       video: {
-        src: "http://ftp.nluug.nl/pub/graphics/blender/demo/movies/ToS/tears_of_steel_720p.mov",
-        type: "video/mp4",
+        // src: "http://ftp.nluug.nl/pub/graphics/blender/demo/movies/ToS/tears_of_steel_720p.mov",
+        // type: "video/mp4",
       },
-      waiting_modal: false,
+      download_processing:false,
+      download_visible: false,
+      downloaded_list: [],
+      waiting_visible: false,
       alert_visible: false,
       waiting_msg: "",
       alert_msg: "",
@@ -416,66 +460,24 @@ export default {
     this.$refs.videoPlayer.addEventListener("timeupdate", (event) => {
       this.time_info.cp = this.timestampToStrftime(event.target.currentTime);
     });
-    this.video_info.comments = [
-        {
-            "timestamp": "55:34",
-            "tag": "[]"
-        },
-        {
-            "timestamp": "00:00",
-            "tag": "[] +) 菅田将暉(Suda Masaki) - 灰色と青(잿빛과 푸름, Haiirotoao)"
-        },
-        {
-            "timestamp": "05:32",
-            "tag": "[] 春雷 (Shunrai, 춘뢰)"
-        },
-        {
-            "timestamp": "10:21",
-            "tag": "[] orion (오리온, 3월의 라이온 OST)"
-        },
-        {
-            "timestamp": "15:11",
-            "tag": "[] Loser (루저)"
-        },
-        {
-            "timestamp": "19:14",
-            "tag": "[] アイネクライネ (아이네 클라이네)"
-        },
-        {
-            "timestamp": "24:02",
-            "tag": "[] まちがいさがし (Machigai Sagashi, 틀린그림찾기)"
-        },
-        {
-            "timestamp": "28:30",
-            "tag": "[] +) 野田洋次郎 (Yojiro Noda) - PLACEBO (플라시보)"
-        },
-        {
-            "timestamp": "32:31",
-            "tag": "[] でしょましょ (Deshomasho, 데쇼마쇼)"
-        },
-        {
-            "timestamp": "35:23",
-            "tag": "[] Vivi (비비)"
-        },
-        {
-            "timestamp": "39:54",
-            "tag": "[] カムパネルラ (Campanella, 캄파넬라)"
-        },
-        {
-            "timestamp": "43:50",
-            "tag": "[] 馬と鹿 (Uma to Shika, 말과 사슴)"
-        },
-        {
-            "timestamp": "48:19",
-            "tag": "[] Peace Sign (피스사인, 나의 히어로 아카데미아 OP 2)"
-        },
-        {
-            "timestamp": "52:18",
-            "tag": "[] Flamingo (플라밍고) 🦩"
-        }
-    ]
+    this.video_info.comments = []
+    let dl = JSON.parse(localStorage.getItem('downloaded_list'))
+    if(dl){
+      this.downloaded_list = dl;
+    }
+  },
+  watch:{
+    waiting_visible: function(){
+      if (this.waiting_visible === false && this.download_processing === false){
+        this.download_processing = true;
+      }
+    }
   },
   methods: {
+    openDownloadList (pos) {
+        this.position = pos;
+        this.download_visible = true;
+    },
     doSearch() {
       this.setupVideoPlayer();
       // this.$router.push('/search?q='+this.videoUrl);
@@ -547,7 +549,8 @@ export default {
     },
     setupVideoPlayer() {
       let api_url =
-        "https://4x0z0hafla.execute-api.ap-northeast-2.amazonaws.com/yt-download";
+        // "https://4x0z0hafla.execute-api.ap-northeast-2.amazonaws.com/yt-download";
+        "http://localhost:4444";
       fetch(api_url + "/query?q=" + this.videoUrl)
         .then((resp) => resp.json())
         .then((resp) => {
@@ -567,9 +570,31 @@ export default {
         strftime
       );
     },
+    load_timestamp_advanced(){
+      let api_url = "http://localhost:4444"
+      let aws_api = api_url + "/timestamp";
+      try{
+        fetch(aws_api + "?url=" + this.video_info.url)
+        .then(resp => resp.json())
+        .then((resp) => {
+          if(resp.statusCode === 200 && resp.body.success){
+            let data = resp.body.data;
+            this.video_info.comments = data;
+          }
+          else{
+            this.alertPopup('유튜브 댓글 정보를 가져오는데 실패했습니다.');
+          }
+        })
+      }catch(err){
+        this.alertPopup('서버로부터 응답이 없습니다..');
+        console.log(err);
+        return;
+      }
+    },
     async trim_process_healthcheck(ticket){
       let api_url =
-        "https://4x0z0hafla.execute-api.ap-northeast-2.amazonaws.com/yt-download";
+        // "https://4x0z0hafla.execute-api.ap-northeast-2.amazonaws.com/yt-download";
+        "http://localhost:4444";
       let aws_api = api_url + "/healthcheck";
       let resp = await fetch(aws_api, {
           method: "POST",
@@ -599,60 +624,96 @@ export default {
           }
           else{
               this.alertPopup("응답값이 유효하지 않습니다. 관리자에게 문의하세요");
-              console.log(data);
               throw new Error("invalid response");
           }
       }
     },
 
-    download_request(){
+    async download_request(){
       let api_url =
-        "https://4x0z0hafla.execute-api.ap-northeast-2.amazonaws.com/yt-download";
+        // "https://4x0z0hafla.execute-api.ap-northeast-2.amazonaws.com/yt-download";
+        "http://localhost:4444";
       if(!(this.timeInputValidation(this.time_info.sp) && this.timeInputValidation(this.time_info.ep))){
         this.alertPopup("시작 / 종료 입력값을 확인하세요\n 입력값은 00:00:00.000 형식이어야 합니다.");
         return;
       }
-      if(!this.getOriginVideoUrl()){
-        this.alertPopup("원본 비디오 정보를 가져오는데 실패했습니다. 새로고침 후 다시 시도해 보세요!");
-        return;
-      }
-      if(!this.videoUrl){
-        this.alertPopup("요청하신 비디오 정보가 없습니다. 다시 검색해 주세요.");
-        return;
-      }
-      if(this.strftimeToTimestamp(this.time_info.sp) === this.strftimeToTimestamp(this.time_info.ep)){
+      // if(!this.getOriginVideoUrl()){
+      //   this.alertPopup("원본 비디오 정보를 가져오는데 실패했습니다. 새로고침 후 다시 시도해 보세요!");
+      //   return;
+      // }
+      // if(!this.videoUrl){
+      //   this.alertPopup("요청하신 비디오 정보가 없습니다. 다시 검색해 주세요.");
+      //   return;
+      // }
+      // if(this.strftimeToTimestamp(this.time_info.sp) === this.strftimeToTimestamp(this.time_info.ep)){
 
-      }
-      else{
-        this.waiting_modal = true;
+      // }
+      // else{
+        this.waiting_visible = true;
         this.waiting_msg = "자르기 요청 시작";
-        fetch(api_url + "/trim-request", {
+        let resp = undefined;
+        try{
+          resp = await fetch(api_url + "/trim-request", {
           method: 'POST',
           headers: {
             'Content-Type': "application/json"
           },
           body: JSON.stringify({
-            o_url: this.videoUrl,
-            url:this.getOriginVideoUrl(),
-            sp:this.time_info.sp,
-            ep:this.time_info.ep,
-            m_duration: parseInt(this.video_info.duration)
-          })
-        })
-        .then((resp) => resp.json())
-        .then((resp) => {
-          if(resp.statusCode === 200 && resp.body.success){
-            this.waiting_msg = "자르기 요청 성공";
-            let data = resp.body.data;
-            if('tiekct' in data){
-              let healthcheck_cnt = 0;
-              while(healthcheck_cnt <= 5){
-
+              o_url: this.videoUrl,
+              url:this.getOriginVideoUrl(),
+              sp:this.time_info.sp,
+              ep:this.time_info.ep,
+              m_duration: parseInt(this.video_info.duration)
+            })
+          });
+          resp = await resp.json();
+        } catch(err){
+          this.waiting_visible = false
+          this.alertPopup('서버로부터 응답이 없습니다..')
+          console.log(err)
+          return;
+        }
+        if(resp.statusCode === 200 && resp.body.success){
+          this.waiting_msg = "자르기 요청 성공";
+          let data = resp.body.data;
+          if('ticket' in data){
+            let max_retry = 5;
+            let try_cnt = 1
+            while(max_retry >= try_cnt){
+              try{
+                let status = await this.trim_process_healthcheck(data.ticket);
+                this.waiting_msg = `작업이 진행중입니다 ; ${try_cnt}`
+                if(status){
+                  this.waiting_visible = false
+                  this.alertPopup("다운로드가 완료되었습니다!");
+                  let v = {
+                      title: this.video_info.title,
+                      url: status.url
+                    }
+                  this.downloaded_list.push(v);
+                  let dl = JSON.parse(localStorage.getItem('downloaded_list'));
+                  if(!dl){
+                    dl = [];
+                  }
+                  dl.push(v);
+                  localStorage.setItem('downloaded_list', JSON.stringify(dl))
+                  await new Promise((resolve) => setTimeout(resolve, 1000));
+                  this.alert_visible = false;
+                  this.download_processing = false;
+                  break
+                }
+                try_cnt += 1;
+                await new Promise((resolve) => setTimeout(resolve, 4000));
+              }catch(err){
+                this.waiting_visible = false
+                this.alertPopup('서버로부터 응답이 없습니다..')
+                console.log(err)
+                return;
               }
             }
           }
-        })
-      }
+        }
+      // }
     }
   },
 };
