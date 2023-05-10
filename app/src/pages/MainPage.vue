@@ -454,22 +454,18 @@ export default {
     return {
       aws_api_url:
         "https://4x0z0hafla.execute-api.ap-northeast-2.amazonaws.com/yt-download",
-      videoUrl: "",
-      video: {
-        // src: "http://ftp.nluug.nl/pub/graphics/blender/demo/movies/ToS/tears_of_steel_720p.mov",
-        // type: "video/mp4",
-      },
+      videoUrl: "", // youtube short url
+      video: {}, // html video element source
       download_processing: false,
-      processing_visible: false,
-      download_visible: false,
-      downloaded_list: [],
-      waiting_visible: false,
-      alert_visible: false,
-      waiting_msg: "",
-      alert_msg: "",
+      processing_visible: false, // download processing modal
+      download_visible: false, // downloaded list modal
+      waiting_visible: false, // waiting modal
+      alert_visible: false, // alert modal
+      downloaded_list: [], // user previously downloaded
+      waiting_msg: "", // msg for waiting modal
+      alert_msg: "", // msg for alert modal
       s_visible: false,
       e_visible: false,
-      text: "",
       time_info: {
         sp: "00:00:00.000",
         ep: "00:00:00.000",
@@ -500,15 +496,43 @@ export default {
   },
   created() {
     this.videoUrl = this.$route.query.q;
-    // console.log(this.$route.query.q);
   },
   mounted() {
+    /**
+      @ add timeupdate event to video element
+      @ get video current time and present it to user like hh:mm:ss.sss format
+      */
     this.$refs.videoPlayer.addEventListener("timeupdate", (event) => {
       this.time_info.cp = this.timestampToStrftime(event.target.currentTime);
     });
+    /**
+     * downloaded_list : {
+     *  list: [],
+     *  created_time : int
+     * }
+     */
     let dl = JSON.parse(localStorage.getItem("downloaded_list"));
+    let new_creation_require = false;
+    let _time = Math.round(new Date().getTime() / 1000);
     if (dl) {
-      this.downloaded_list = dl;
+      if (dl.created_time - _time > 86400 * 3) {
+        // 3 days
+        new_creation_require = true;
+      }
+    } else {
+      new_creation_require = true;
+    }
+    if (new_creation_require) {
+      localStorage.setItem(
+        "downloaded_list",
+        JSON.stringify({
+          list: [],
+          created_time: _time,
+        })
+      );
+      this.downloaded_list = [];
+    } else {
+      this.downloaded_list = dl.list;
     }
     if (this.videoUrl) {
       this.setupVideoPlayer();
@@ -521,7 +545,6 @@ export default {
     },
     doSearch() {
       this.setupVideoPlayer();
-      // this.$router.push('/search?q='+this.videoUrl);
     },
     enterKey(evt) {
       if (evt.key === "Enter") {
@@ -636,9 +659,12 @@ export default {
       this.downloaded_list.push(v);
       let dl = JSON.parse(localStorage.getItem("downloaded_list"));
       if (!dl) {
-        dl = [];
+        dl = {
+          list: [],
+          created_time: Math.round(new Date().getTime() / 1000),
+        };
       }
-      dl.push(v);
+      dl.list.push(v);
       localStorage.setItem("downloaded_list", JSON.stringify(dl));
     },
     load_timestamp_advanced() {
@@ -697,17 +723,8 @@ export default {
     },
 
     async download_request() {
-      if (
-        !(
-          this.timeInputValidation(this.time_info.sp) &&
-          this.timeInputValidation(this.time_info.ep)
-        )
-      ) {
-        this.alertPopup(
-          "시작 / 종료 입력값을 확인하세요\n 입력값은 00:00:00.000 형식이어야 합니다."
-        );
-        return;
-      }
+      let sp = this.timeInputValidation(this.time_info.sp);
+      let ep = this.timeInputValidation(this.time_info.ep);
       if (!this.getOriginVideoUrl()) {
         this.alertPopup(
           "원본 비디오 정보를 가져오는데 실패했습니다. 새로고침 후 다시 시도해 보세요!"
@@ -718,16 +735,16 @@ export default {
         this.alertPopup("요청하신 비디오 정보가 없습니다. 다시 검색해 주세요.");
         return;
       }
-      if (
-        this.strftimeToTimestamp(this.time_info.sp) >=
-        this.strftimeToTimestamp(this.time_info.ep)
-      ) {
+      if (!(sp && ep)) {
+        this.alertPopup(
+          "시작 / 종료 입력값을 확인하세요.\n 입력값은 00:00:00.000 형식이어야 합니다."
+        );
+        return;
+      }
+      if (sp > ep) {
         this.alertPopup("종료 지점이 시작 지점보다 앞에 있을 수 없습니다.");
         return;
-      } else if (
-        this.strftimeToTimestamp(this.time_info.sp) ===
-        this.strftimeToTimestamp(this.time_info.ep)
-      ) {
+      } else if (sp === ep) {
         this.addDownloadList(this.video_info.title, this.getOriginVideoUrl());
       } else {
         this.download_processing = true;
@@ -761,12 +778,12 @@ export default {
           this.waiting_msg = "자르기 요청 성공";
           let data = resp.body.data;
           if ("ticket" in data) {
-            let max_retry = 5;
+            let max_retry = 6;
             let try_cnt = 1;
             while (max_retry >= try_cnt) {
               try {
                 let status = await this.trim_process_healthcheck(data.ticket);
-                this.waiting_msg = `작업이 진행중입니다 ; ${try_cnt}`;
+                this.waiting_msg = `작업이 진행중입니다 : ${try_cnt}`;
                 if (status) {
                   this.download_processing = false;
                   this.waiting_visible = false;

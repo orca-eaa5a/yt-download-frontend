@@ -9,7 +9,9 @@
       </div>
 
       <div class="q-mb-xl" style="z-index: 100">
-        <legend class="sub-legend">Input Youtube Video URl here</legend>
+        <legend class="sub-legend">
+          여기에 Youtube Video URL을 입력하세요
+        </legend>
         <q-input
           v-model="videoUrl"
           rounded
@@ -64,13 +66,10 @@ export default {
 </style>
 <style scoped>
 @import url(../css/animation.scss);
-.bg-black {
-  background-color: black;
-}
 
 .main-screen {
   display: flex;
-  background-color: black;
+  /* background-color: black; */
   width: 100vw;
   height: calc(100vh - 50px);
   justify-content: center;
@@ -79,7 +78,7 @@ export default {
   /* margin: 0 40px !important; */
 }
 .main-yt-image {
-  max-width: 330px;
+  max-width: 250px;
   position: absolute;
   right: 10%;
   bottom: 0px;
@@ -95,7 +94,7 @@ export default {
 .sub-legend {
   font-size: 11pt;
   font-family: "Inter Medium";
-  color: white;
+  color: #333;
   text-align: center;
   margin: auto;
   position: relative;
@@ -115,7 +114,7 @@ export default {
 }
 @media screen and (-webkit-min-device-pixel-ratio: 0) and (max-width: 500px) {
   .main-yt-image {
-    max-width: 200px;
+    max-width: 175px;
   }
   .main-legend {
     font-size: 20pt;
