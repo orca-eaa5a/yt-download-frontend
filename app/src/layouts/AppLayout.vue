@@ -10,6 +10,7 @@
 </template>
 
 <script>
+import { route } from "quasar/wrappers";
 import { defineComponent, ref } from "vue";
 
 export default defineComponent({

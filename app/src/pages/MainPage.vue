@@ -637,8 +637,10 @@ export default {
       if (!video_url.startsWith("https://")) {
         video_url = "https://" + video_url;
       }
+
       fetch(video_url, {
         method: "GET",
+        // mode: "no-cors",
         headers: {
           "Content-Type": "application/mp4",
         },
@@ -652,6 +654,10 @@ export default {
           document.body.appendChild(link);
           link.click();
           link.parentNode.removeChild(link);
+        })
+        .catch((err) => {
+          console.log(err);
+          window.open(video_url);
         });
     },
     addDownloadList(title, url) {
@@ -723,8 +729,8 @@ export default {
     },
 
     async download_request() {
-      let sp = this.timeInputValidation(this.time_info.sp);
-      let ep = this.timeInputValidation(this.time_info.ep);
+      let sp = this.strftimeToTimestamp(this.time_info.sp);
+      let ep = this.strftimeToTimestamp(this.time_info.ep);
       if (!this.getOriginVideoUrl()) {
         this.alertPopup(
           "원본 비디오 정보를 가져오는데 실패했습니다. 새로고침 후 다시 시도해 보세요!"
@@ -735,7 +741,10 @@ export default {
         this.alertPopup("요청하신 비디오 정보가 없습니다. 다시 검색해 주세요.");
         return;
       }
-      if (!(sp && ep)) {
+      if (
+        !this.timeInputValidation(this.time_info.sp) ||
+        !this.timeInputValidation(this.time_info.ep)
+      ) {
         this.alertPopup(
           "시작 / 종료 입력값을 확인하세요.\n 입력값은 00:00:00.000 형식이어야 합니다."
         );
@@ -744,7 +753,7 @@ export default {
       if (sp > ep) {
         this.alertPopup("종료 지점이 시작 지점보다 앞에 있을 수 없습니다.");
         return;
-      } else if (sp === ep) {
+      } else if (sp === 0 && ep === 0) {
         this.addDownloadList(this.video_info.title, this.getOriginVideoUrl());
       } else {
         this.download_processing = true;
